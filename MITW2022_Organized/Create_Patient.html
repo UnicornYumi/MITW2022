@@ -1,0 +1,860 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CREATE Patient</title>
+    <style>
+        #main {
+            width: 768px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+
+        .field,
+        .subfield1,
+        .subfield2 {
+            width: 100px;
+            display: inline-block;
+            padding-left: 20px;
+            color: blue;
+        }
+
+        .field {
+            background-color: bisque;
+        }
+
+        .subfield1 {
+            background-color: blanchedalmond;
+        }
+
+        .subfield2 {
+            background-color: beige;
+        }
+
+        table,
+        table tr,
+        table tr td {
+            border: 1px black solid;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        input[type=text],
+        input[type=number] {
+            width: 110px;
+        }
+
+        input[type=email],
+        input[type=url] {
+            width: 200px;
+        }
+
+        select {
+            width: 120px;
+        }
+
+        .output_panel {
+            font-size: small;
+            margin-left: auto;
+            margin-right: auto;
+            width: 600px;
+            display: block;
+        }
+    </style>
+    <script src="setting.js"></script>
+    <script>
+        function HTTPPutData(urlStr, dataStr, output_panel) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("Put", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization","Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32")
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert('data retrieved');
+                    //console.log(ret);
+                    output_panel.value = ret;
+                }
+            }
+            rawFile.send(dataStr);
+        }
+
+        function HTTPPostData(urlStr, dataStr, output_panel) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("Post", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization","Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32")
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert('data retrieved');
+                    //console.log(ret);
+                    output_panel.value = ret;
+                }
+            }
+            rawFile.send(dataStr);
+        }
+
+        function valid_birthDate(dob) {
+            var date = new Date();
+            let day = date.getDate();
+            if (day < 10){
+                day = `0${day}`;
+            }
+            let month = date.getMonth() + 1;
+            let year = date.getFullYear();
+            const today = `${year}-${month}-${day}`;
+            //console.log(today + " vs " + dob);
+            return dob <= today;
+        }
+
+        function put_t1sc1() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC1"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForIdentifier"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            var id = document.getElementById("patient_id_sc1").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_1");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function put_t1sc2() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC2"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "telecom": [
+                    { "system": "phone", "value": document.getElementById("telecom.phone").value, "use": "mobile" },
+                    { "system": "email", "value": document.getElementById("telecom.email").value },
+                    { "system": "url", "value": document.getElementById("telecom.other").value }
+                ],
+                "address": [{
+                    "text": "",
+                    "line": [],
+                    "city": "",
+                    "district": "",
+                    "postalCode": "",
+                    "country": ""
+                }],
+                "contact": [
+                    {
+                        "relationship": [
+                            {
+                                "coding":
+                                    [
+                                        {
+                                            "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+                                            "code": ""
+                                        }
+                                    ],
+                                "text": ""
+                            }
+                        ],
+                        "name": {
+                            "text": "",
+                            "family": document.getElementById("contact.lname").value,
+                            "given": [document.getElementById("contact.fname").value]
+                        },
+                        "telecom": [
+                            { "system": "phone", "value": document.getElementById("contact.telecom.phone").value, "use": "mobile" },
+                            { "system": "email", "value": document.getElementById("contact.telecom.email").value },
+                            { "system": "url", "value": document.getElementById("contact.telecom.other").value }
+                        ],
+                        "address": {
+                            "text": "",
+                            "line": [],
+                            "city": "",
+                            "district": "",
+                            "postalCode": "",
+                            "country": ""
+                        }
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForContact"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            var address_line = document.getElementById("address.line").value;
+            var address_city = document.getElementById("address.city").value;
+            var address_district = document.getElementById("address.district").value;
+            var address_postalCode = document.getElementById("address.postalCode").value;
+            var address_country = document.getElementById("address.country").value;
+            resource["address"][0]["text"] = `${address_postalCode} ${address_country} ${address_district} ${address_city} ${address_line}`;
+            resource["address"][0]["line"][0] = address_line;
+            resource["address"][0]["city"] = address_city;
+            resource["address"][0]["district"] = address_district;
+            resource["address"][0]["postalCode"] = address_postalCode;
+            resource["address"][0]["country"] = address_country;
+
+            resource["contact"][0]["relationship"][0]["coding"][0]["code"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].value;
+            resource["contact"][0]["relationship"][0]["text"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].innerHTML;
+            resource["contact"][0]["name"]["text"] = `${resource["contact"][0]["name"]["given"][0]} ${resource["contact"][0]["name"]["family"]}`;
+
+            var contact_address_line = document.getElementById("contact.address.line").value;
+            var contact_address_city = document.getElementById("contact.address.city").value;
+            var contact_address_district = document.getElementById("contact.address.district").value;
+            var contact_address_postalCode = document.getElementById("contact.address.postalCode").value;
+            var contact_address_country = document.getElementById("contact.address.country").value;
+            resource["contact"][0]["address"]["text"] = `${contact_address_postalCode} ${contact_address_country} ${contact_address_district} ${contact_address_city} ${contact_address_line}`;
+            resource["contact"][0]["address"]["line"][0] = contact_address_line;
+            resource["contact"][0]["address"]["city"] = contact_address_city;
+            resource["contact"][0]["address"]["district"] = contact_address_district;
+            resource["contact"][0]["address"]["postalCode"] = contact_address_postalCode;
+            resource["contact"][0]["address"]["country"] = contact_address_country;
+
+            var id = document.getElementById("patient_id_sc2").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_2");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function put_t1sc3() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC3"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    // {
+                    //     "use": "official",
+                    //     "type": {
+                    //         "coding": [
+                    //             {
+                    //                 "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                    //                 "code": "MR"
+                    //             }
+                    //         ]
+                    //     },
+                    //     "system": "https://www.tph.mohw.gov.tw/",
+                    //     "value": document.getElementById("mr_id").value
+                    // }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForPHR"
+                }
+            };
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            var id = document.getElementById("patient_id_sc3").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_3");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function post_t1sc1() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC1"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForIdentifier"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            const urlStr = `${URL}/Patient`;
+            var output_panel = document.getElementById("output_panel_1");
+            HTTPPostData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function post_t1sc2() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC2"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "telecom": [
+                    { "system": "phone", "value": document.getElementById("telecom.phone").value, "use": "mobile" },
+                    { "system": "email", "value": document.getElementById("telecom.email").value },
+                    { "system": "url", "value": document.getElementById("telecom.other").value }
+                ],
+                "address": [{
+                    "text": "",
+                    "line": [],
+                    "city": "",
+                    "district": "",
+                    "postalCode": "",
+                    "country": ""
+                }],
+                "contact": [
+                    {
+                        "relationship": [
+                            {
+                                "coding":
+                                    [
+                                        {
+                                            "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+                                            "code": ""
+                                        }
+                                    ],
+                                "text": ""
+                            }
+                        ],
+                        "name": {
+                            "text": "",
+                            "family": document.getElementById("contact.lname").value,
+                            "given": [document.getElementById("contact.fname").value]
+                        },
+                        "telecom": [
+                            { "system": "phone", "value": document.getElementById("contact.telecom.phone").value, "use": "mobile" },
+                            { "system": "email", "value": document.getElementById("contact.telecom.email").value },
+                            { "system": "url", "value": document.getElementById("contact.telecom.other").value }
+                        ],
+                        "address": {
+                            "text": "",
+                            "line": [],
+                            "city": "",
+                            "district": "",
+                            "postalCode": "",
+                            "country": ""
+                        }
+
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForContact"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            var address_line = document.getElementById("address.line").value;
+            var address_city = document.getElementById("address.city").value;
+            var address_district = document.getElementById("address.district").value;
+            var address_postalCode = document.getElementById("address.postalCode").value;
+            var address_country = document.getElementById("address.country").value;
+            resource["address"][0]["text"] = `${address_postalCode} ${address_country} ${address_district} ${address_city} ${address_line}`;
+            resource["address"][0]["line"][0] = address_line;
+            resource["address"][0]["city"] = address_city;
+            resource["address"][0]["district"] = address_district;
+            resource["address"][0]["postalCode"] = address_postalCode;
+            resource["address"][0]["country"] = address_country;
+
+            resource["contact"][0]["relationship"][0]["coding"][0]["code"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].value;
+
+            resource["contact"][0]["relationship"][0]["text"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].innerHTML;
+            resource["contact"][0]["name"]["text"] = `${resource["contact"][0]["name"]["given"][0]} ${resource["contact"][0]["name"]["family"]}`;
+
+            var contact_address_line = document.getElementById("contact.address.line").value;
+            var contact_address_city = document.getElementById("contact.address.city").value;
+            var contact_address_district = document.getElementById("contact.address.district").value;
+            var contact_address_postalCode = document.getElementById("contact.address.postalCode").value;
+            var contact_address_country = document.getElementById("contact.address.country").value;
+            resource["contact"][0]["address"]["text"] = `${contact_address_postalCode} ${contact_address_country} ${contact_address_district} ${contact_address_city} ${contact_address_line}`;
+            resource["contact"][0]["address"]["line"][0] = contact_address_line;
+            resource["contact"][0]["address"]["city"] = contact_address_city;
+            resource["contact"][0]["address"]["district"] = contact_address_district;
+            resource["contact"][0]["address"]["postalCode"] = contact_address_postalCode;
+            resource["contact"][0]["address"]["country"] = contact_address_country;
+
+            const urlStr = `${URL}/Patient`;
+            var output_panel = document.getElementById("output_panel_2");
+            HTTPPostData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function post_t1sc3() {
+
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC3"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    // {
+                    //     "use": "official",
+                    //     "type": {
+                    //         "coding": [
+                    //             {
+                    //                 "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                    //                 "code": "MR"
+                    //             }
+                    //         ]
+                    //     },
+                    //     "system": "https://www.tph.mohw.gov.tw/",
+                    //     "value": document.getElementById("mr_id").value
+                    // }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForPHR"
+                }
+            };
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            const urlStr = `${URL}/Patient`;
+            var output_panel = document.getElementById("output_panel_3");
+            HTTPPostData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function createPatient() {
+            var dob = document.getElementById("birthDate").value;
+            //alert(dob);
+            var postalCode = document.getElementById("address.postalCode").value;
+            var contact_postalCode = document.getElementById("contact.address.postalCode").value;
+
+            if (valid_birthDate(dob) && (postalCode != '' && contact_postalCode != '')) {
+                if (postalCode.length >= 3 && contact_postalCode.length >= 3) {
+                    
+                    if (document.getElementById("patient_id_sc1").value == '')
+                        post_t1sc1();
+                    else
+                        put_t1sc1();
+
+                    if (document.getElementById("patient_id_sc2").value == '')
+                        post_t1sc2();
+                    else
+                        put_t1sc2();
+
+                    if (document.getElementById("patient_id_sc3").value == '')
+                        post_t1sc3();
+                    else
+                        put_t1sc3();
+
+                }
+                else
+                {
+                    alert("Invalid Postal Code Format");
+                }
+            }
+            else {
+                alert("Invalid Date of Birth or Postal Code Format");
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div id="main">
+        <div id="create">
+            <h1>Create</h1>
+            <span class="field">SC1 ID:</span> <input type="text" id="patient_id_sc1" />
+            <br />
+            <span class="field">SC2 ID:</span> <input type="text" id="patient_id_sc2" />
+            <br />
+            <span class="field">SC3 ID:</span> <input type="text" id="patient_id_sc3" />
+            <br />
+            <span class="field">Name: </span> <br />
+            <span class="subfield1">First Name: </span>
+            <input type="text" id="fname" placeholder="given name" required />
+            <span class="subfield1">Last Name: </span>
+            <input type="text" id="lname" placeholder="family name" required />
+            <br />
+            <span class="field">Identifier: </span> <br />
+            <select id="identifier_type">
+                <option>身分證字號</option>
+                <option>居留證號碼</option>
+                <option>護照號碼</option>
+            </select>
+            <input type="text" id="identifier_value" />
+            <span class="subfield1">病理號碼: </span>
+            <input type="text" id="mr_id" required />
+            <br />
+            <span class="field">Gender: </span>
+            <select id="gender">
+                <option id="male" value="male">Male</option>
+                <option id="female" value="female">Female</option>
+                <option id="other" value="other">Other</option>
+                <option id="unknown" value="unknown">Unknown</option>
+            </select>
+            <span class="field">Date of Birth: </span>
+            <input type="date" id="birthDate" required />
+            <br />
+            <span class="field">Telecom:</span>
+            <br />
+            <span class="subfield1">Phone: </span>
+            <input type="text" id="telecom.phone" />
+            <br />
+            <span class="subfield1">E-mail: </span>
+            <input type="email" id="telecom.email" />
+            <span class="subfield1">Other: </span>
+            <input type="url" id="telecom.other" />
+            <br />
+            <span class="field">Address:</span><br />
+            <span class="subfield1">Line: </span>
+            <input type="text" id="address.line" /><br />
+            <span class="subfield1">City: </span>
+            <input type="text" id="address.city" /><br />
+            <span class="subfield1">District: </span>
+            <input type="text" id="address.district" /><br />
+            <span class="subfield1">PostalCode: </span>
+            <input type="text" id="address.postalCode" /><br />
+            <span class="subfield1">Country: </span>
+            <input type="text" id="address.country" value="TW" />
+            <br />
+            <span class="field">Organization: </span>
+            <input type="text" id="organization" value="MITW" disabled />
+            <br />
+            <br />
+            <span class="field">Contact:</span> <br />
+            <span class="subfield1">Relationship: </span>
+            <select id="contact.relationship">
+                <option value="CP">Contact Person</option>
+                <option value="EP">Emergency contact person</option>
+                <option value="N">Next-of-Kin</option>
+            </select>
+            <br />
+            <span class="subfield1">Name: </span> <br />
+            <span class="subfield2">First Name: </span>
+            <input type="text" id="contact.fname" placeholder="given name" />
+            <span class="subfield2">Last Name: </span>
+            <input type="text" id="contact.lname" placeholder="family name" />
+            <br />
+            <span class="subfield1">Telecom: </span> <br />
+            <span class="subfield2">Phone: </span>
+            <input type="text" id="contact.telecom.phone" />
+            <br />
+            <span class="subfield2">E-mail: </span>
+            <input type="email" id="contact.telecom.email" />
+            <span class="subfield2">Other: </span>
+            <input type="url" id="contact.telecom.other" />
+            <br />
+            <span class="subfield1">Address:</span><br />
+            <span class="subfield2">Line: </span>
+            <input type="text" id="contact.address.line" /><br />
+            <span class="subfield2">City: </span>
+            <input type="text" id="contact.address.city" /><br />
+            <span class="subfield2">District: </span>
+            <input type="text" id="contact.address.district" /><br />
+            <span class="subfield2">PostalCode: </span>
+            <input type="text" id="contact.address.postalCode" /><br />
+            <span class="subfield2">Country: </span>
+            <input type="text" id="contact.address.country" value="TW" />
+            <br />
+
+            <input type="button" onclick="createPatient()" value="CREATE" />
+        </div>
+        <hr />
+        <div>
+            <h1>Output Panel</h1>
+            <textarea class="output_panel" id="output_panel_1" disabled style="height:700px;width:600px;"></textarea>
+            <br />
+            <textarea class="output_panel" id="output_panel_2" disabled style="height:700px;width:600px;"></textarea>
+            <br />
+            <textarea class="output_panel" id="output_panel_3" disabled style="height:700px;width:600px;"></textarea>
+        </div>
+    </div>
+</body>
+
+</html>

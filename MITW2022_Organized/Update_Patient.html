@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UPDATE Patient</title>
+    <style>
+        #main {
+            width: 768px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 10px;
+        }
+
+        .field,
+        .subfield1,
+        .subfield2 {
+            width: 100px;
+            display: inline-block;
+            padding-left: 20px;
+            color: blue;
+        }
+
+        .field {
+            background-color: bisque;
+        }
+
+        .subfield1 {
+            background-color: blanchedalmond;
+        }
+
+        .subfield2 {
+            background-color: beige;
+        }
+
+        table,
+        table tr,
+        table tr td {
+            border: 1px black solid;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        input[type=text],
+        input[type=number] {
+            width: 110px;
+        }
+
+        input[type=email],
+        input[type=url] {
+            width: 200px;
+        }
+
+        select {
+            width: 120px;
+        }
+
+        .output_panel {
+            font-size: small;
+            margin-left: auto;
+            margin-right: auto;
+            width: 600px;
+            display: block;
+        }
+    </style>
+    <script src="setting.js"></script>
+    <script>
+        function HTTPPutData(urlStr, dataStr, output_panel) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("Put", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization","Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32")
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert('data retrieved');
+                    //console.log(ret);
+                    output_panel.value = ret;
+                }
+            }
+            rawFile.send(dataStr);
+        }
+
+        function HTTPGetData(urlStr, callback_fn, output_panel) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("GET", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization","Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32")
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert("data retrieved");
+                    console.log(ret);
+                    output_panel.value = ret;
+                    callback_fn(JSON.parse(ret));
+                }
+            }
+            rawFile.send();
+        }
+
+        function valid_birthDate(dob) {
+            var date = new Date();
+            let day = date.getDate();
+            if (day < 10) {
+                day = `0${day}`;
+            }
+            let month = date.getMonth() + 1;
+            let year = date.getFullYear();
+            const today = `${year}-${month}-${day}`;
+            //console.log(today + " vs " + dob);
+            return dob <= today;
+        }
+
+        function put_t1sc1() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC1"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForIdentifier"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            var id = document.getElementById("patient_id_sc1").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_1");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function put_t1sc2() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC2"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }
+                ],
+                "telecom": [
+                    { "system": "phone", "value": document.getElementById("telecom.phone").value, "use": "mobile" },
+                    { "system": "email", "value": document.getElementById("telecom.email").value },
+                    { "system": "url", "value": document.getElementById("telecom.other").value }
+                ],
+                "address": [{
+                    "text": "",
+                    "line": [],
+                    "city": "",
+                    "district": "",
+                    "postalCode": "",
+                    "country": ""
+                }],
+                "contact": [
+                    {
+                        "relationship": [
+                            {
+                                "coding":
+                                    [
+                                        {
+                                            "system": "http://terminology.hl7.org/CodeSystem/v2-0131",
+                                            "code": ""
+                                        }
+                                    ],
+                                "text": ""
+                            }
+                        ],
+                        "name": {
+                            "text": "",
+                            "family": document.getElementById("contact.lname").value,
+                            "given": [document.getElementById("contact.fname").value]
+                        },
+                        "telecom": [
+                            { "system": "phone", "value": document.getElementById("contact.telecom.phone").value, "use": "mobile" },
+                            { "system": "email", "value": document.getElementById("contact.telecom.email").value },
+                            { "system": "url", "value": document.getElementById("contact.telecom.other").value }
+                        ],
+                        "address": {
+                            "text": "",
+                            "line": [],
+                            "city": "",
+                            "district": "",
+                            "postalCode": "",
+                            "country": ""
+                        }
+                    }
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForContact"
+                }
+            };
+
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            if (document.getElementById("lname").value != '' && document.getElementById("fname").value != '') {
+                var name =
+                {
+                    "use": "official",
+                    "family": document.getElementById("lname").value,
+                    "given": [
+                        document.getElementById("fname").value
+                    ]
+                };
+                name["text"] = `${name["given"][0]} ${name["family"]}`;
+                resource['name'] = [name];
+            }
+            resource['birthDate'] = document.getElementById("birthDate").value;
+            resource['gender'] = document.getElementById("gender").options[
+                document.getElementById("gender").selectedIndex
+            ].value;
+
+            var address_line = document.getElementById("address.line").value;
+            var address_city = document.getElementById("address.city").value;
+            var address_district = document.getElementById("address.district").value;
+            var address_postalCode = document.getElementById("address.postalCode").value;
+            var address_country = document.getElementById("address.country").value;
+            resource["address"][0]["text"] = `${address_postalCode} ${address_country} ${address_district} ${address_city} ${address_line}`;
+            resource["address"][0]["line"][0] = address_line;
+            resource["address"][0]["city"] = address_city;
+            resource["address"][0]["district"] = address_district;
+            resource["address"][0]["postalCode"] = address_postalCode;
+            resource["address"][0]["country"] = address_country;
+
+            resource["contact"][0]["relationship"][0]["coding"][0]["code"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].value;
+            resource["contact"][0]["relationship"][0]["text"] = document.getElementById("contact.relationship").options[
+                document.getElementById("contact.relationship").selectedIndex
+            ].innerHTML;
+            resource["contact"][0]["name"]["text"] = `${resource["contact"][0]["name"]["given"][0]} ${resource["contact"][0]["name"]["family"]}`;
+
+            var contact_address_line = document.getElementById("contact.address.line").value;
+            var contact_address_city = document.getElementById("contact.address.city").value;
+            var contact_address_district = document.getElementById("contact.address.district").value;
+            var contact_address_postalCode = document.getElementById("contact.address.postalCode").value;
+            var contact_address_country = document.getElementById("contact.address.country").value;
+            resource["contact"][0]["address"]["text"] = `${contact_address_postalCode} ${contact_address_country} ${contact_address_district} ${contact_address_city} ${contact_address_line}`;
+            resource["contact"][0]["address"]["line"][0] = contact_address_line;
+            resource["contact"][0]["address"]["city"] = contact_address_city;
+            resource["contact"][0]["address"]["district"] = contact_address_district;
+            resource["contact"][0]["address"]["postalCode"] = contact_address_postalCode;
+            resource["contact"][0]["address"]["country"] = contact_address_country;
+
+            var id = document.getElementById("patient_id_sc2").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_2");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function put_t1sc3() {
+            var resource = {
+                "resourceType": "Patient",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/Patient-MITW2022-T1SC3"]
+                },
+                "identifier": [
+                    {
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": ""
+                                }
+                            ]
+                        },
+                        "system": "",
+                        "value": document.getElementById("identifier_value").value
+                    },
+                    /*{
+                        "use": "official",
+                        "type": {
+                            "coding": [
+                                {
+                                    "system": "http://terminology.hl7.org/CodeSystem/v2-0203",
+                                    "code": "MR"
+                                }
+                            ]
+                        },
+                        "system": "https://www.tph.mohw.gov.tw/",
+                        "value": document.getElementById("mr_id").value
+                    }*/
+                ],
+                "active": true,
+                "managingOrganization": {
+                    "reference": "Organization/MITW.ForPHR"
+                }
+            };
+            var identifier_type = document.getElementById("identifier_type").value;
+            switch (identifier_type) {
+                case "身分證字號":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "NI";
+                    resource["identifier"][0]["system"] = "http://www.moi.gov.tw/";
+                    break;
+                case "居留證號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PRC";
+                    resource["identifier"][0]["system"] = "http://www.immigration.gov.tw/";
+                    break;
+                case "護照號碼":
+                    resource["identifier"][0]["type"]["coding"][0]["code"] = "PPN";
+                    resource["identifier"][0]["system"] = "http://www.boca.gov.tw/";
+                    break;
+            }
+            var id = document.getElementById("patient_id_sc3").value;
+            resource["id"] = id;
+            const urlStr = `${URL}/Patient/${id}`;
+            var output_panel = document.getElementById("output_panel_3");
+            HTTPPutData(urlStr, JSON.stringify(resource), output_panel);
+        }
+
+        function updatePatient() {
+            var dob = document.getElementById("birthDate").value;
+            var postalCode = document.getElementById("address.postalCode").value;
+            var contact_postalCode = document.getElementById("contact.address.postalCode").value;
+
+            if (valid_birthDate(dob) && (postalCode != '' && contact_postalCode != '')) {
+                if (postalCode.length >= 3 && contact_postalCode.length >= 3) {
+
+                    if (document.getElementById("patient_id_sc1").value != '')
+                        put_t1sc1();
+                    else
+                        alert("To update patient ForIdentifier please provide patient id for scenario 1");
+
+                    if (document.getElementById("patient_id_sc2").value != '')
+                        put_t1sc2();
+                    else
+                        alert("To update patient ForContact please provide patient id for scenario 2");
+
+                    if (document.getElementById("patient_id_sc3").value != '')
+                        put_t1sc3();
+                    else
+                        alert("To update patient ForPHR please provide patient id for scenario 3");
+
+                }
+                else {
+                    alert("Invalid Postal Code Format");
+                }
+            }
+            else {
+                alert("Invalid Date of Birth or Postal Code Format");
+            }
+        }
+
+        function clearOutput() {
+            var inps = document.getElementById("update").getElementsByTagName("input");
+            for (let i = 0; i < inps.length; i++) {
+                if (inps[i].type != "button")
+                    inps[i].value = "";
+            }
+            var selects = document.getElementById("update").getElementsByTagName("select");
+            for (let i = 0; i < selects.length; i++) {
+                selects[i].selectedIndex = 0;
+            }
+            var textareas = document.getElementsByClassName("output_panel");
+            for (let i = 0; i < textareas.length; i++) {
+                textareas[i].value = "";
+            }
+        }
+
+        function showPatient(json_obj) {
+            console.log("show patient");
+            const total = json_obj["total"];
+            if (total == 3 || total == 2) {
+                console.log("three");
+                for (let i = 0; i < total; i++) {
+                    let resource = json_obj["entry"][i]["resource"];
+                    org = resource["managingOrganization"]["reference"].split("/")[1];
+                    switch (org) {
+                        case "MITW.ForIdentifier":
+                            document.getElementById("patient_id_sc1").value = resource["id"];
+                            break;
+                        case "MITW.ForPHR":
+                            document.getElementById("patient_id_sc3").value = resource["id"];
+                            break;
+                        case "MITW.ForContact":
+                            console.log("Filling....");
+                            document.getElementById("patient_id_sc2").value = resource["id"];
+                            document.getElementById("fname").value = resource["name"][0]["given"][0];
+                            document.getElementById("lname").value = resource["name"][0]["family"];
+                            switch (resource["identifier"][0]["type"]["coding"][0]["code"]) {
+                                case "NI":
+                                    document.getElementById("identifier_type").value = "身分證字號";
+                                    break;
+                                case "PRC":
+                                    document.getElementById("identifier_type").value = "居留證號碼";
+                                    break;
+                                case "PPN":
+                                    document.getElementById("identifier_type").value = "護照號碼";
+                                    break;
+                            }
+                            document.getElementById("identifier_value").value = resource["identifier"][0]["value"];
+                            document.getElementById("mr_id").value = resource["identifier"][1]["value"];
+                            switch (resource["gender"]) {
+                                case "male":
+                                    document.getElementById("gender").selectedIndex = 0;
+                                    break;
+                                case "female":
+                                    document.getElementById("gender").selectedIndex = 1;
+                                    break;
+                                case "other":
+                                    document.getElementById("gender").selectedIndex = 2;
+                                    break;
+                                case "unknown":
+                                    document.getElementById("gender").selectedIndex = 3;
+                                    break;
+                                default:
+                                    break;
+                            }
+                            document.getElementById("birthDate").value = resource["birthDate"];
+                            // telecom
+                            document.getElementById("telecom.phone").value = resource["telecom"][0]["value"];
+                            document.getElementById("telecom.email").value = resource["telecom"][1]["value"];
+                            document.getElementById("telecom.other").value = resource["telecom"][2]["value"];
+                            // address
+                            if (resource["address"] != undefined) {
+                                document.getElementById("address.line").value = resource["address"][0]["line"][0];
+                                document.getElementById("address.city").value = resource["address"][0]["city"];
+                                document.getElementById("address.district").value = resource["address"][0]["district"];
+                                document.getElementById("address.postalCode").value = resource["address"][0]["postalCode"];
+                                document.getElementById("address.country").value = resource["address"][0]["country"];
+                            }
+                            // contact
+                            if (resource["contact"] != undefined) {
+                                switch (resource["contact"][0]["relationship"][0]["coding"][0]["code"]) {
+                                    case "CP": document.getElementById("contact.relationship").selectedIndex = 0;
+                                        break;
+                                    case "EP": document.getElementById("contact.relationship").selectedIndex = 1;
+                                        break;
+                                    case "N": document.getElementById("contact.relationship").selectedIndex = 2;
+                                        break;
+                                }
+                                document.getElementById("contact.fname").value = resource["contact"][0]["name"]["given"][0];
+                                document.getElementById("contact.lname").value = resource["contact"][0]["name"]["family"];
+                                // contact.telecom
+                                document.getElementById("contact.telecom.phone").value = resource["contact"][0]["telecom"][0]["value"];
+                                document.getElementById("contact.telecom.email").value = resource["contact"][0]["telecom"][1]["value"];
+                                document.getElementById("contact.telecom.other").value = resource["contact"][0]["telecom"][2]["value"];
+                                // contact.address
+                                if (resource["contact"][0]["address"] != undefined) {
+                                    document.getElementById("contact.address.line").value = resource["contact"][0]["address"]["line"][0];
+                                    document.getElementById("contact.address.city").value = resource["contact"][0]["address"]["city"];
+                                    document.getElementById("contact.address.district").value = resource["contact"][0]["address"]["district"];
+                                    document.getElementById("contact.address.postalCode").value = resource["contact"][0]["address"]["postalCode"];
+                                    document.getElementById("contact.address.country").value = resource["contact"][0]["address"]["country"];
+                                }
+
+
+                            }
+
+
+
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+            else if (total == 1) {
+                let resource = json_obj["entry"][0]["resource"];
+                switch (resource["identifier"][0]["type"]["coding"][0]["code"]) {
+                    case "NI":
+                        document.getElementById("identifier_type").value = "身分證字號";
+                        break;
+                    case "PRC":
+                        document.getElementById("identifier_type").value = "居留證號碼";
+                        break;
+                    case "PPN":
+                        document.getElementById("identifier_type").value = "護照號碼";
+                        break;
+                }
+                document.getElementById("identifier_value").value = resource["identifier"][0]["value"];
+                document.getElementById("mr_id").value = resource["identifier"][1]["value"];
+
+                org = resource["managingOrganization"]["reference"].split("/")[1];
+                document.getElementById("organization").value = org;
+                switch (org) {
+                    case "MITW.ForIdentifier":
+                        document.getElementById("patient_id_sc1").value = resource["id"];
+                        document.getElementById("fname").value = resource["name"][0]["given"][0];
+                        document.getElementById("lname").value = resource["name"][0]["family"];
+                        switch (resource["gender"]) {
+                            case "male":
+                                document.getElementById("gender").selectedIndex = 0;
+                                break;
+                            case "female":
+                                document.getElementById("gender").selectedIndex = 1;
+                                break;
+                            case "other":
+                                document.getElementById("gender").selectedIndex = 2;
+                                break;
+                            case "unknown":
+                                document.getElementById("gender").selectedIndex = 3;
+                                break;
+                            default:
+                                break;
+                        }
+                        document.getElementById("birthDate").value = resource["birthDate"];
+                        break;
+                    case "MITW.ForPHR":
+                        document.getElementById("patient_id_sc3").value = resource["id"];
+                        break;
+                    case "MITW.ForContact":
+                        console.log("Filling....");
+                        document.getElementById("patient_id_sc2").value = resource["id"];
+                        document.getElementById("fname").value = resource["name"][0]["given"][0];
+                        document.getElementById("lname").value = resource["name"][0]["family"];
+                        switch (resource["gender"]) {
+                            case "male":
+                                document.getElementById("gender").selectedIndex = 0;
+                                break;
+                            case "female":
+                                document.getElementById("gender").selectedIndex = 1;
+                                break;
+                            case "other":
+                                document.getElementById("gender").selectedIndex = 2;
+                                break;
+                            case "unknown":
+                                document.getElementById("gender").selectedIndex = 3;
+                                break;
+                            default:
+                                break;
+                        }
+                        document.getElementById("birthDate").value = resource["birthDate"];
+                        // telecom
+                        document.getElementById("telecom.phone").value = resource["telecom"][0]["value"];
+                        document.getElementById("telecom.email").value = resource["telecom"][1]["value"];
+                        document.getElementById("telecom.other").value = resource["telecom"][2]["value"];
+                        // address
+                        if (resource["address"] != undefined) {
+                            document.getElementById("address.line").value = resource["address"][0]["line"][0];
+                            document.getElementById("address.city").value = resource["address"][0]["city"];
+                            document.getElementById("address.district").value = resource["address"][0]["district"];
+                            document.getElementById("address.postalCode").value = resource["address"][0]["postalCode"];
+                            document.getElementById("address.country").value = resource["address"][0]["country"];
+                        }
+                        // contact
+                        if (resource["contact"] != undefined) {
+                            switch (resource["contact"][0]["relationship"][0]["coding"][0]["code"]) {
+                                case "CP": document.getElementById("contact.relationship").selectedIndex = 0;
+                                    break;
+                                case "EP": document.getElementById("contact.relationship").selectedIndex = 1;
+                                    break;
+                                case "N": document.getElementById("contact.relationship").selectedIndex = 2;
+                                    break;
+                            }
+                            document.getElementById("contact.fname").value = resource["contact"][0]["name"]["given"][0];
+                            document.getElementById("contact.lname").value = resource["contact"][0]["name"]["family"];
+                            // contact.telecom
+                            document.getElementById("contact.telecom.phone").value = resource["contact"][0]["telecom"][0]["value"];
+                            document.getElementById("contact.telecom.email").value = resource["contact"][0]["telecom"][1]["value"];
+                            document.getElementById("contact.telecom.other").value = resource["contact"][0]["telecom"][2]["value"];
+                            // contact.address
+                            if (resource["contact"][0]["address"] != undefined) {
+                                document.getElementById("contact.address.line").value = resource["contact"][0]["address"]["line"][0];
+                                document.getElementById("contact.address.city").value = resource["contact"][0]["address"]["city"];
+                                document.getElementById("contact.address.district").value = resource["contact"][0]["address"]["district"];
+                                document.getElementById("contact.address.postalCode").value = resource["contact"][0]["address"]["postalCode"];
+                                document.getElementById("contact.address.country").value = resource["contact"][0]["address"]["country"];
+                            }
+                        }
+                        break;
+                }
+            }
+            else {
+                alert("Not Fount!");
+            }
+        }
+
+        function searchPatient() {
+            clearOutput();
+            var urlStr = `${URL}/Patient`;
+            var query_string = "?";
+            const id = document.getElementById("param.patient_id").value;
+            if (id != "") {
+                urlStr = `${URL}/Patient?_id=${id}`;
+                document.getElementById("url_panel").value = urlStr;
+                var output_panel = document.getElementById("output_panel_1");
+                HTTPGetData(urlStr, showPatient, output_panel);
+            }
+            else {
+                let name = document.getElementById("param.fname").value + " " + document.getElementById("param.lname").value;
+                name = name.trim();
+                if (name.length > 0) {
+                    query_string += `name=${name}`;
+                }
+                const identifier_type = document.getElementById("param.identifier_type").value;
+                const identifier_value = document.getElementById("param.identifier_value").value;
+                if (identifier_value != "") {
+                    var system = undefined;
+                    switch (identifier_type) {
+                        case "身分證字號":
+                            system = "http://www.moi.gov.tw/";
+                            break;
+                        case "居留證號碼":
+                            system = "http://www.immigration.gov.tw/";
+                            break;
+                        case "":
+                            system = "http://www.boca.gov.tw/";
+                            break;
+                        default:
+                            break;
+                    }
+                    if (query_string.length > 1) {
+                        query_string += "&";
+                    }
+                    query_string += `identifier=${system}|${identifier_value}`;
+                }
+                const mr_id = document.getElementById("param.mr_id").value;
+                if (mr_id != "") {
+                    if (query_string.length > 1) {
+                        query_string += "&";
+                    }
+                    query_string += `identifier=https://www.tph.mohw.gov.tw/|${mr_id}`;
+                }
+                const organization = document.getElementById("param.organization").value;
+                if (organization != "") {
+                    if (query_string.length > 1) {
+                        query_string += "&";
+                    }
+                    query_string += `organization=${organization}`;
+                }
+
+                var url = urlStr + query_string;
+                url = url.replace(" ", "%20");
+                document.getElementById("url_panel").value = url;
+                var output_panel = document.getElementById("output_panel_1");
+                HTTPGetData(url, showPatient, output_panel);
+            }
+
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="main">
+        <div id="search">
+            <h1>Search</h1>
+            <span class="field">Patient ID:</span> <input type="text" id="param.patient_id" />
+            <br />
+            <span class="field">Name: </span> <br />
+            <span class="subfield1">First Name: </span>
+            <input type="text" id="param.fname" placeholder="given name" required />
+            <span class="subfield1">Last Name: </span>
+            <input type="text" id="param.lname" placeholder="family name" required />
+            <br />
+            <span class="field">Identifier: </span> <br />
+            <select id="param.identifier_type">
+                <option>身分證字號</option>
+                <option>居留證號碼</option>
+                <option>護照號碼</option>
+            </select>
+            <input type="text" id="param.identifier_value" />
+            <span class="subfield1">病理號碼: </span>
+            <input type="text" id="param.mr_id" required />
+            <br />
+            <span class="field">Organization</span>
+            <input type="text" id="param.organization" />
+            <br />
+            <input type="button" onclick="searchPatient()" value="SEARCH" />
+            <br />
+            <textarea id="url_panel" style="height:100px;width:500px;" disabled></textarea>
+        </div>
+        <hr />
+        <div id="update">
+            <h1>UPDATE</h1>
+            <span class="field">SC1 ID:</span> <input type="text" id="patient_id_sc1" disabled />
+            <br />
+            <span class="field">SC2 ID:</span> <input type="text" id="patient_id_sc2" disabled />
+            <br />
+            <span class="field">SC3 ID:</span> <input type="text" id="patient_id_sc3" disabled />
+            <br />
+            <span class="field">Name: </span> <br />
+            <span class="subfield1">First Name: </span>
+            <input type="text" id="fname" placeholder="given name" required />
+            <span class="subfield1">Last Name: </span>
+            <input type="text" id="lname" placeholder="family name" required />
+            <br />
+            <span class="field">Identifier: </span> <br />
+            <select id="identifier_type">
+                <option>身分證字號</option>
+                <option>居留證號碼</option>
+                <option>護照號碼</option>
+            </select>
+            <input type="text" id="identifier_value" required />
+            <span class="subfield1">病理號碼: </span>
+            <input type="text" id="mr_id" required />
+            <br />
+            <span class="field">Gender: </span>
+            <select id="gender">
+                <option id="male" value="male">Male</option>
+                <option id="female" value="female">Female</option>
+                <option id="other" value="other">Other</option>
+                <option id="unknown" value="unknown">Unknown</option>
+            </select>
+            <span class="field">Date of Birth: </span>
+            <input type="date" id="birthDate" required />
+            <br />
+            <span class="field">Telecom:</span>
+            <br />
+            <span class="subfield1">Phone: </span>
+            <input type="text" id="telecom.phone" />
+            <br />
+            <span class="subfield1">E-mail: </span>
+            <input type="email" id="telecom.email" />
+            <span class="subfield1">Other: </span>
+            <input type="url" id="telecom.other" />
+            <br />
+            <span class="field">Address:</span><br />
+            <span class="subfield1">Line: </span>
+            <input type="text" id="address.line" required /><br />
+            <span class="subfield1">City: </span>
+            <input type="text" id="address.city" required /><br />
+            <span class="subfield1">District: </span>
+            <input type="text" id="address.district" required /><br />
+            <span class="subfield1">PostalCode: </span>
+            <input type="text" id="address.postalCode" required /><br />
+            <span class="subfield1">Country: </span>
+            <input type="text" id="address.country" value="TW" required />
+            <br />
+            <span class="field">Organization: </span>
+            <input type="text" id="organization" value="" disabled />
+            <br />
+            <br />
+            <span class="field">Contact:</span> <br />
+            <span class="subfield1">Relationship: </span>
+            <select id="contact.relationship">
+                <option value="CP">Contact Person</option>
+                <option value="EP">Emergency contact person</option>
+                <option value="N">Next-of-Kin</option>
+            </select>
+            <br />
+            <span class="subfield1">Name: </span> <br />
+            <span class="subfield2">First Name: </span>
+            <input type="text" id="contact.fname" placeholder="given name" required />
+            <span class="subfield2">Last Name: </span>
+            <input type="text" id="contact.lname" placeholder="family name" required />
+            <br />
+            <span class="subfield1">Telecom: </span> <br />
+            <span class="subfield2">Phone: </span>
+            <input type="text" id="contact.telecom.phone" />
+            <br />
+            <span class="subfield2">E-mail: </span>
+            <input type="email" id="contact.telecom.email" />
+            <span class="subfield2">Other: </span>
+            <input type="url" id="contact.telecom.other" />
+            <br />
+            <span class="subfield1">Address:</span><br />
+            <span class="subfield2">Line: </span>
+            <input type="text" id="contact.address.line" required /><br />
+            <span class="subfield2">City: </span>
+            <input type="text" id="contact.address.city" required /><br />
+            <span class="subfield2">District: </span>
+            <input type="text" id="contact.address.district" required /><br />
+            <span class="subfield2">PostalCode: </span>
+            <input type="text" id="contact.address.postalCode" required /><br />
+            <span class="subfield2">Country: </span>
+            <input type="text" id="contact.address.country" value="TW" required />
+            <br />
+
+            <input type="button" onclick="updatePatient()" value="UPDATE" />
+        </div>
+        <hr />
+        <div>
+            <h1>Output Panel</h1>
+            <textarea class="output_panel" id="output_panel_1" disabled style="height:700px;width:600px;"></textarea>
+            <br />
+            <textarea class="output_panel" id="output_panel_2" disabled style="height:700px;width:600px;"></textarea>
+            <br />
+            <textarea class="output_panel" id="output_panel_3" disabled style="height:700px;width:600px;"></textarea>
+        </div>
+    </div>
+</body>
+
+</html>

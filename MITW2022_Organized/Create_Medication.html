@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medication</title>
+    <style>
+        .field {
+            width: 150pt;
+            color: blue;
+            background-color: pink;
+            display: inline-block;
+            padding-left: 20px;
+        }
+
+        table,
+        table tr,
+        table tr td {
+            border: 1px black solid;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        input[type=text] {
+            width: 300px;
+        }
+    </style>
+    <script>
+        function HTTPPostData(urlStr, dataStr) {
+            console.table(dataStr);
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("Post", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert('data retrieved');
+                    console.table(ret);
+                }
+            }
+            rawFile.send(dataStr);
+        }
+
+        function postMedication(){
+            const urlStr = 'https://203.64.84.150:58443/fhir/Medication';
+
+            var resource = {
+                "resourceType": "Medication",
+                "doseForm": {
+                    "coding": [
+                        {
+                            "system": "http://snomed.info/sct",
+                            "code": document.getElementById("doseForm").value,
+                            "display": document.getElementById("doseForm").options[
+                                document.getElementById("doseForm").selectedIndex
+                            ].innerHTML
+                        }
+                    ]
+                },
+                "code": {
+                    "coding": [
+                        {
+                            "system": "https://www1.nhi.gov.tw/QueryN/Query1.aspx",
+                            "code": document.getElementById("med_code").value,
+                            "display": document.getElementById("med_display_name").value
+                        }
+                    ]
+                },
+                "status":"active"
+            };
+            console.log(resource);
+            HTTPPostData(urlStr, JSON.stringify(resource));
+        }
+    </script>
+</head>
+<body>
+    <div id="main">
+        <div id="create">
+            <h1>Create</h1>
+            <span class="field">Medication Code: </span>
+            <input type="text" id="med_code" />
+            <br />
+            <span class="field">Medication Display Name: </span>
+            <input type="text" id="med_display_name" />
+            <br />
+            <span class="field">Form: </span>
+            <select id="doseForm">
+                <option value="385268001">Oral dose form</option>
+                <option value="385084005">Sublingual tablet</option>
+                <option value="764296002">Prolonged-release subcutaneous implant</option>
+                <option value="769000008">Subcutaneous dose form</option>
+                <option value="1209096001">Oral or rectal solution</option>
+                <option value="765164007">Ear or eye or nose drops solution</option>
+                <option value="385219001">Solution for injection</option>
+            </select>
+            <br />
+            <input type="button" onclick="postMedication()" value="CREATE" />
+        </div>
+    </div>
+</body>
+</html>

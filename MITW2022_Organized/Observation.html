@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Observation Client</title>
+    <style>
+        #main {
+            width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .field {
+            width: 150pt;
+            color: blue;
+            background-color: pink;
+            display: inline-block;
+            padding-left: 20px;
+        }
+
+        table,
+        table tr,
+        table tr td {
+            border: 1px black solid;
+            border-collapse: collapse;
+        }
+
+        td {
+            padding: 5px;
+        }
+
+        input[type=text],
+        input[type=number],
+        select {
+            width: 300px;
+        }
+    </style>
+    <script src="setting.js"></script>
+    <script>
+        function HTTPPostData(urlStr, dataStr) {
+            console.table(dataStr);
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("Post", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization", "Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32");
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert('data retrieved');
+                    var output_panel = document.getElementById("output_panel");
+                    output_panel.value = ret;
+                }
+            }
+            rawFile.send(dataStr);
+        }
+
+        function HTTPGetData(urlStr, callback_fn) {
+            var rawFile = new XMLHttpRequest();
+            rawFile.open("GET", urlStr, true);
+            rawFile.setRequestHeader("Content-type", "application/json+fhir");
+            rawFile.setRequestHeader("Authorization", "Bearer 8585f921-8053-4f1f-91b0-bc2994bb6d32")
+            rawFile.onreadystatechange = function () {
+                if (rawFile.readyState === 4) {
+                    ret = rawFile.responseText;
+                    alert("data retrieved");
+                    var output_panel = document.getElementById("output_panel");
+                    output_panel.value = ret;
+                    callback_fn(JSON.parse(ret));
+                }
+            }
+            rawFile.send();
+        }
+
+        function postObservation() {
+            const urlStr = `${URL}/Observation`;
+            let status_array = document.getElementsByName("status");
+            let status = undefined;
+            for (let i = 0; i < status_array.length; i++) {
+                if (status_array[i].checked) {
+                    status = status_array[i].value;
+                }
+            }
+
+            var resource = {
+                "resourceType": "Observation",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/ObservationForEMS.Common"]
+                },
+                "status": status,
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": document.getElementById('vital-signs').checked ? 'vital-signs' : 'laboratory',
+                                "display": document.getElementById('vital-signs').checked ? 'Vital Signs' : 'Laboratory'
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": document.getElementById("code").options[document.getElementById("code").selectedIndex].value,
+                            "display": document.getElementById("code").options[document.getElementById("code").selectedIndex].innerHTML
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/" + document.getElementById('patient_id').value
+                },
+                "effectiveDateTime": document.getElementById('effectiveDateTime').value + ':00' + '+08:00',
+                "valueQuantity": {
+                    "value": parseInt(document.getElementById("value").value),
+                    "unit": document.getElementById("unit").value,
+                    "system": "http://unitsofmeasure.org",
+                    "code": document.getElementById("unit").value
+                }
+            };
+            console.log(resource);
+            HTTPPostData(urlStr, JSON.stringify(resource));
+        }
+
+        function postCapillaryRefill() {
+            const urlStr = `${URL}/Observation`;
+            let status_array = document.getElementsByName("status");
+            let status = undefined;
+            for (let i = 0; i < status_array.length; i++) {
+                if (status_array[i].checked) {
+                    status = status_array[i].value;
+                }
+            }
+
+            var resource = {
+                "resourceType": "Observation",
+                "meta": {
+                    "profile": ["https://hapi.fhir.tw/fhir/StructureDefinition/ObservationForEMS.Common"]
+                },
+                "status": status,
+                "category": [
+                    {
+                        "coding": [
+                            {
+                                "system": "http://terminology.hl7.org/CodeSystem/observation-category",
+                                "code": 'exam',
+                                "display": 'Exam'
+                            }
+                        ]
+                    }
+                ],
+                "code": {
+                    "coding": [
+                        {
+                            "system": "http://loinc.org",
+                            "code": document.getElementById("code").options[document.getElementById("code").selectedIndex].value,
+                            "display": document.getElementById("code").options[document.getElementById("code").selectedIndex].innerHTML
+                        }
+                    ]
+                },
+                "subject": {
+                    "reference": "Patient/" + document.getElementById('patient_id').value
+                },
+                "effectiveDateTime": document.getElementById('effectiveDateTime').value + ':00' + '+08:00',
+                "valueQuantity": {
+                    "value": parseInt(document.getElementById("value").value),
+                    "unit": document.getElementById("unit").value,
+                    "system": "http://unitsofmeasure.org",
+                    "code": document.getElementById("unit").value
+                }
+            };
+            console.log(resource);
+            HTTPPostData(urlStr, JSON.stringify(resource));
+        }
+
+        function valid_input() {
+            const code = document.getElementById("code").value;
+            var value = document.getElementById("value").value;
+            switch (code) {
+                case "3137-7": return value > 0;
+                case "29463-7": return value > 0;
+                case "83105-5": return (value > 30 && value < 50);
+                case "87422-2": return value > 0;
+                case "88365-2": return value > 0;
+                case "41982-0": return (value > 0 && value <= 100);
+                case "83174-3": return value > 0;
+                case "59408-5": return (value > 0 && value <= 100);
+                case "8889-8": return value > 0;
+                case "44963-7": return value > 0;
+                case "9279-1": return value > 0;
+                case "2339-0": return value > 0;
+            }
+        }
+
+        function createObservation() {
+            const code = document.getElementById("code").value;
+            if (valid_input()) {
+                if (code == "44963-7") {
+                    postCapillaryRefill();
+                }
+                else {
+                    postObservation();
+                }
+            }
+            else {
+                alert("Incorrect Input");
+            }
+        }
+
+        function getObservation() {
+            const urlStr = `${URL}/Observation`;
+
+            const patient_id = document.getElementById('param_patient_id').value;
+            const loinc_code = document.getElementById("param_code").options[document.getElementById("param_code").selectedIndex].value;
+
+            var query_string = undefined;
+            if (patient_id != '') {
+                query_string = `?subject=${patient_id}&code=${loinc_code}`;
+            }
+            else {
+                query_string = `?code=${loinc_code}`;
+            }
+            HTTPGetData(urlStr + query_string, showObservations);
+        }
+
+        function showObservations(json_obj) {
+            var table = document.getElementById('observation_table');
+            table.innerHTML = '';
+            var rowCount = json_obj['total'];
+            if (rowCount > 0) {
+                const columns = ['id', 'status', 'category_display', 'code_display', 'subject', 'effectiveDateTime', 'valueQuantity_value unit'];
+                var row = table.insertRow(0);
+                for (let i = 0; i < columns.length; i++) {
+                    var cell = row.insertCell(i);
+                    cell.innerHTML = columns[i];
+                }
+                var resources = json_obj['entry'];
+
+                for (let i = 0; i < rowCount; i++) {
+                    const i_resource = resources[i]['resource'];
+                    //console.log(i_resource);
+                    var dataRow = table.insertRow(i + 1);
+                    var id = dataRow.insertCell(0);
+                    id.innerHTML = i_resource['id'];
+
+                    var status = dataRow.insertCell(1);
+                    status.innerHTML = i_resource['status'];
+
+                    var category_display = dataRow.insertCell(2);
+                    category_display.innerHTML = i_resource['category'][0]['coding'][0]['display'];
+
+                    var code_display = dataRow.insertCell(3);
+                    code_display.innerHTML = i_resource['code']['coding'][0]['display'];
+
+                    var subject = dataRow.insertCell(4);
+                    subject.innerHTML = i_resource['subject']['reference'].split('/')[1];
+
+                    var effectiveDateTime = dataRow.insertCell(5);
+                    effectiveDateTime.innerHTML = i_resource['effectiveDateTime'];
+
+                    var valueQuantity = dataRow.insertCell(6);
+                    valueQuantity.innerHTML = i_resource['valueQuantity']['value'] + ' ' + i_resource['valueQuantity']['unit'];
+                }
+            }
+        }
+
+        function update_relevant_field() {
+            const code = document.getElementById("code").value;
+            var unit = document.getElementById("unit");
+            switch (code) {
+                case "3137-7": unit.selectedIndex = 1;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "29463-7": unit.selectedIndex = 2;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "83105-5": unit.selectedIndex = 3;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "87422-2": unit.selectedIndex = 4;
+                    document.getElementById("laboratory").checked = true;
+                    break;
+                case "88365-2": unit.selectedIndex = 4;
+                    document.getElementById("laboratory").checked = true;
+                    break;
+                case "41982-0": unit.selectedIndex = 0;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "83174-3": unit.selectedIndex = 2;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "8889-8": unit.selectedIndex = 5;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "44963-7": unit.selectedIndex = 6;
+                    document.getElementById("exam").checked = true;
+                    break;
+                case "9279-1": unit.selectedIndex = 7;
+                    document.getElementById("vital-signs").checked = true;
+                    break;
+                case "2339-0": unit.selectedIndex = 4;
+                    document.getElementById("laboratory").checked = true;
+                    break;
+            }
+        }
+
+    </script>
+</head>
+
+<body>
+    <div id="main">
+        <div id="retrieve">
+            <h1>Search</h1>
+            <span class="field">Patient id: </span> <input type="text" id="param_patient_id" />
+            <br />
+            <span class="field">Loinc Code: </span>
+            <select id="param_code">
+                <option value="3137-7">Body height Measured</option>
+                <option value="29463-7">Body weight</option>
+                <option value="83105-5">Body temperature</option>
+                <option value="87422-2">Blood Glucose Post Meal</option>
+                <option value="88365-2">Blood Glucose Pre Meal</option>
+                <option value="41982-0">Percentage of body fat Measured</option>
+                <option value="83174-3">Grip strength Hand - right Dynamometer</option>
+                <option value="59408-5">Oxygen saturation in Arterial blood by Pulse oximetry</option>
+                <option value="8889-8">Heart rate by Pulse oximeter</option>
+                <option value="44963-7">Capillary refill [Time] of Nail bed</option>
+                <option value="9279-1">Respiratory Rate</option>
+                <option value="2339-0">Glucose [Mass/volume] in Blood</option>
+            </select>
+            <br />
+            <input type="button" onclick="getObservation()" value="SEARCH" />
+            <br />
+            <table id="observation_table"></table>
+        </div>
+        <hr />
+        <div id="create">
+            <h1>Create</h1>
+            <span class="field">Patient id: </span> <input type="text" id="patient_id" />
+            <br />
+            <span class="field">Status:</span> <input type="radio" name="status" value="final" id="final" checked
+                disabled /> <label for="final">Final</label>
+            <br />
+            <span class="field">Code | Type: </span>
+            <select id="code" onchange="update_relevant_field();">
+                <option value="3137-7">Body height Measured</option>
+                <option value="29463-7">Body weight</option>
+                <option value="83105-5">Body temperature</option>
+                <option value="87422-2">Blood Glucose Post Meal</option>
+                <option value="88365-2">Blood Glucose Pre Meal</option>
+                <option value="41982-0">Percentage of body fat Measured</option>
+                <option value="83174-3">Grip strength Hand - right Dynamometer</option>
+                <option value="59408-5">Oxygen saturation in Arterial blood by Pulse oximetry</option>
+                <option value="8889-8">Heart rate by Pulse oximeter</option>
+                <option value="44963-7">Capillary refill [Time] of Nail bed</option>
+                <option value="9279-1">Respiratory Rate</option>
+                <option value="2339-0">Glucose [Mass/volume] in Blood</option>
+            </select>
+            <br />
+            <span class="field">Category: </span>
+            <input type="radio" name="category" value="Vital Signs" id="vital-signs" checked disabled /> <label
+                for="vital-signs">Vital
+                Signs</label>
+            <input type="radio" name="category" value="Laboratory" id="laboratory" disabled /><label
+                for="laboratory">Laboratory</label>
+            <input type="radio" name="category" value="Exam" id="exam" disabled /><label for="exam">Exam</label>
+            <br />
+
+            <span class="field">Effective Datetime: </span> <input type="datetime-local" id="effectiveDateTime" />
+            <br />
+            <span class="field">Value: </span> <input type="number" id="value" />
+            <br />
+            <span class="field">Unit: </span>
+            <select id="unit" disabled>
+                <option id="%" value="%">%</option>
+                <option id="cm" value="cm" selected>cm</option>
+                <option id="kg" value="kg">kg</option>
+                <option id="Cel" value="Cel">Cel</option>
+                <option id="mg/dL" value="mg/dL">mg/dL</option>
+                <option id="{beats}/min" value="{beats}/min">{beats}/min</option>
+                <option id="s" value="s">s</option>
+                <option id="{breaths}/min" value="{breaths}/min">{breaths}/min</option>
+            </select>
+            <br />
+            <input type="button" onclick="createObservation()" value="CREATE" />
+        </div>
+        <hr />
+        <div>
+            <h1>Output Panel</h1>
+            <textarea id="output_panel" disabled style="height:500px;width:600px;"></textarea>
+        </div>
+    </div>
+</body>
+
+</html>
+
+<!--
+ registered | preliminary
+
+-->
